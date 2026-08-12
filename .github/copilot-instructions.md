@@ -168,3 +168,10 @@ When a reviewer rejects work, the original author is **locked out** of that arti
 ## MCP State Bridge
 
 The `squad_state` MCP server provides `squad_state_read/write/append/delete/list` tools for agents to persist state without hand-rolling git commits. Configured in `.copilot/mcp-config.json`. Agents must use these tools for mutable `.squad/` state — they must not switch branches or commit squad state directly.
+
+<!-- mermaid-ai-skills:start -->
+## Mermaid Diagrams
+
+When the user asks to create, edit, or visualize a diagram, follow the
+instructions in `.github/instructions/mermaid.instructions.md`.
+<!-- mermaid-ai-skills:end -->

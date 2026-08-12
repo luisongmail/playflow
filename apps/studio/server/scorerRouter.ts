@@ -575,7 +575,7 @@ function parsePitchRequest(body: unknown): PitchRequest {
     // Campos estándar métricos (spec 29)
     plate_x: parseOptionalSignedFloat(body.plate_x, 'plate_x'),
     plate_z: parseOptionalSignedFloat(body.plate_z, 'plate_z'),
-    zone: parseOptionalGridCoordinate(body.zone, 'zone'),
+    zone: parseOptionalNonNegativeInt(body.zone, 'zone'),
     start_speed: parseOptionalFloat(body.start_speed, 'start_speed'),
     pfx_x: parseOptionalSignedFloat(body.pfx_x, 'pfx_x'),
     pfx_z: parseOptionalSignedFloat(body.pfx_z, 'pfx_z'),
