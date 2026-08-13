@@ -17,24 +17,12 @@ export async function bootstrapSysAdmin(): Promise<void> {
 
   const conn = await pool.getConnection();
   try {
-    // Verificar si ya existe un SysAdmin en Platform
-    const [existing] = await conn.execute<RowDataPacket[]>(
-      `SELECT ra.assignment_id FROM role_assignments ra
-       WHERE ra.role = 'SysAdmin' AND ra.resource_type = 'Platform' AND ra.resource_id = 'global'
-       LIMIT 1`,
-    );
-
-    if (existing.length > 0) {
-      console.log(`[Bootstrap] SysAdmin ya existe — omitiendo bootstrap.`);
-      return;
-    }
-
-    // Crear o recuperar usuario
+    // Crear o recuperar el usuario indicado por BOOTSTRAP_SYSADMIN_EMAIL.
     const userId = `usr_${crypto.randomUUID().replace(/-/g, '')}`;
     await conn.execute<ResultSetHeader>(
       `INSERT INTO users (user_id, email, status, created_at, updated_at)
        VALUES (?, ?, 'active', NOW(), NOW())
-       ON DUPLICATE KEY UPDATE updated_at = updated_at`,
+       ON DUPLICATE KEY UPDATE status = 'active', updated_at = NOW()`,
       [userId, email],
     );
 
@@ -43,6 +31,19 @@ export async function bootstrapSysAdmin(): Promise<void> {
       [email],
     );
     const actualUserId = userRows[0].user_id as string;
+
+    const [existing] = await conn.execute<RowDataPacket[]>(
+      `SELECT ra.assignment_id FROM role_assignments ra
+       WHERE ra.user_id = ? AND ra.role = 'SysAdmin'
+         AND ra.resource_type = 'Platform' AND ra.resource_id = 'global'
+       LIMIT 1`,
+      [actualUserId],
+    );
+
+    if (existing.length > 0) {
+      console.log(`[Bootstrap] SysAdmin ya existe para: ${email} — omitiendo bootstrap.`);
+      return;
+    }
 
     // Asignar rol SysAdmin en Platform
     const assignmentId = `ra_${crypto.randomUUID().replace(/-/g, '')}`;
