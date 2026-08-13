@@ -31,6 +31,13 @@ services:
       NODE_ENV: production
       PORT: 8080
       DATABASE_URL: mysql://playflow_app:dev_password@db:3306/playflow_db
+      BOOTSTRAP_SYSADMIN_EMAIL: ${BOOTSTRAP_SYSADMIN_EMAIL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-no-reply@playflow.app}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-PlayFlow}
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-}
     depends_on:
       db:

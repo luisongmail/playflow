@@ -19,6 +19,27 @@ pnpm install
 pnpm turbo dev
 ```
 
+## Preparar un ambiente desde cero
+
+Desde la raiz del repositorio, ejecuta:
+
+```bash
+pnpm bootstrap
+pnpm --filter @playflow/studio dev:full
+```
+
+`pnpm bootstrap` instala las dependencias con el lockfile, valida las migraciones,
+levanta MySQL, espera a que este saludable y carga los equipos iniciales de forma
+idempotente. No elimina volumenes ni datos existentes.
+
+Para ejecutar la aplicacion completa en Docker:
+
+```bash
+docker compose up -d --build
+```
+
+La interfaz queda disponible en `http://localhost:8080/control`.
+
 ## Tests
 
 ```bash
