@@ -34,6 +34,9 @@ fi
 log 'Instalando dependencias con pnpm-lock.yaml.'
 pnpm install --frozen-lockfile
 
+log 'Compilando Studio y sus paquetes workspace dependientes.'
+pnpm turbo build --filter=@playflow/studio...
+
 log 'Validando migraciones MySQL 8.'
 python3 infra/mysql/lint-migrations.sh
 
