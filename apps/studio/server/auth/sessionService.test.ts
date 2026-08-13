@@ -13,6 +13,7 @@ describe('sessionService — sin DB', () => {
     const { createSession } = await import('./sessionService');
     const { sessionId, refreshToken } = await createSession('usr_1', '127.0.0.1', 'Mozilla');
     expect(sessionId).toMatch(/^sess_/);
+    expect(sessionId.length).toBeLessThanOrEqual(36);
     expect(refreshToken).toHaveLength(64); // 32 bytes en hex
   });
 

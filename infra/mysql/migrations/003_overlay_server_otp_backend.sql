@@ -6,8 +6,21 @@ ALTER TABLE otp_challenges
   ADD COLUMN code_hash CHAR(64) NULL AFTER email,
   ADD COLUMN consumed_at DATETIME(3) NULL AFTER expires_at;
 
-ALTER TABLE otp_challenges
-  DROP COLUMN code;
+SET @drop_code_statement = (
+  SELECT IF(
+    COUNT(*) > 0,
+    'ALTER TABLE otp_challenges DROP COLUMN code',
+    'SELECT 1'
+  )
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'otp_challenges'
+    AND column_name = 'code'
+);
+
+PREPARE drop_code_statement FROM @drop_code_statement;
+EXECUTE drop_code_statement;
+DEALLOCATE PREPARE drop_code_statement;
 
 CREATE INDEX idx_otp_email_status ON otp_challenges (email, status);
 

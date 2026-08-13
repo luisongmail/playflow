@@ -27,7 +27,7 @@ export async function createSession(
   ip: string,
   userAgent: string,
 ): Promise<{ sessionId: string; refreshToken: string }> {
-  const sessionId = `sess_${crypto.randomUUID().replace(/-/g, '')}`;
+  const sessionId = `sess_${crypto.randomBytes(15).toString('hex')}`;
   const refreshToken = generateOpaqueToken();
   const tokenHash = hashToken(refreshToken);
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 86_400_000);
