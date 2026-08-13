@@ -92,6 +92,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
     if (previewUrl) {
       console.log(`[EmailService] Preview OTP para ${to}: ${previewUrl}`);
     }
+    console.log(`[EmailService] OTP aceptado por SMTP para ${to} (messageId=${info.messageId ?? 'unknown'})`);
   } catch (error) {
     if (process.env.NODE_ENV === 'production') {
       throw error;

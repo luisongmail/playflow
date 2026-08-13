@@ -31,6 +31,13 @@ else
   log 'apps/studio/.env ya existe; se conserva la configuracion actual.'
 fi
 
+if [[ ! -f .env ]]; then
+  cp apps/studio/.env .env
+  log 'Creado .env en la raiz para que Docker Compose reciba SMTP y SysAdmin.'
+else
+  log '.env de la raiz ya existe; se conserva la configuracion actual.'
+fi
+
 log 'Instalando dependencias con pnpm-lock.yaml.'
 pnpm install --frozen-lockfile
 

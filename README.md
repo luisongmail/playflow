@@ -155,13 +155,18 @@ pnpm bootstrap
 Para construir y levantar frontend, backend y MySQL en contenedores:
 
 ```bash
-cp .env.example .env
-# Edita .env y define BOOTSTRAP_SYSADMIN_EMAIL y HOST_PORT.
+pnpm bootstrap
+# Edita el .env de la raíz y define SMTP_HOST, SMTP_PASSWORD,
+# BOOTSTRAP_SYSADMIN_EMAIL y HOST_PORT.
 docker compose up -d --build
 ```
 
 La aplicación queda disponible en `http://localhost:8080/control` y el healthcheck
 en `http://localhost:8080/api/info`.
+
+Docker Compose lee las variables del `.env` de la raíz. El archivo
+`apps/studio/.env` se usa para desarrollo local con `dev:full`; no sustituye al
+`.env` raíz cuando se ejecuta Docker.
 
 Para detener contenedores sin borrar el volumen:
 
@@ -249,6 +254,22 @@ pnpm turbo build --filter=@playflow/studio...
 
 Comprueba que `SMTP_HOST` esté vacío o comentado en `apps/studio/.env`, reinicia
 el backend y solicita un código nuevo con `BOOTSTRAP_SYSADMIN_EMAIL`.
+
+### El OTP no llega por correo
+
+Comprueba que el `.env` de la raíz tenga `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASSWORD` y `EMAIL_FROM`. Después recrea el contenedor de aplicación:
+
+```bash
+docker compose up -d --build
+docker logs -f playflow-studio
+```
+
+Un envío aceptado por SMTP aparece como `OTP aceptado por SMTP` con un
+`messageId`. Si aparece esa confirmación pero el correo no llega, revisa el
+dashboard de Resend, la carpeta de spam y que el dominio de `EMAIL_FROM` esté
+verificado en Resend. Para `noreply@playflow.cl`, el dominio `playflow.cl` debe
+estar verificado y sus registros DNS de Resend deben estar publicados.
 
 ### MySQL no inicia o falla el healthcheck
 
