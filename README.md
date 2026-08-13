@@ -1,46 +1,8 @@
-# Mineros Broadcast
+# PlayFlow
 
-Monorepo del sistema de overlays para transmision de beisbol en vivo del Club Mineros de Santiago. Incluye contratos compartidos, paquetes base, overlays y aplicaciones para operacion y salida al aire.
+Sistema de overlays para transmisión de béisbol en vivo del Club Mineros de Santiago.
+Es un monorepo basado en pnpm, Turborepo, React, TypeScript, Vite, Express y MySQL.
 
-## Prerrequisitos
-
-- Node.js 20+
-- pnpm 9+
-
-## Instalacion
-
-```bash
-pnpm install
-```
-
-## Desarrollo
-
-```bash
-pnpm turbo dev
-```
-
-## Preparar un ambiente desde cero
-
-Desde la raiz del repositorio, ejecuta:
-
-```bash
-pnpm bootstrap
-pnpm --filter @playflow/studio dev:full
-```
-
-`pnpm bootstrap` instala las dependencias con el lockfile, valida las migraciones,
-levanta MySQL, espera a que este saludable y carga los equipos iniciales de forma
-idempotente. No elimina volumenes ni datos existentes.
-
-Para ejecutar la aplicacion completa en Docker:
-
-```bash
-docker compose up -d --build
-```
-
-La interfaz queda disponible en `http://localhost:8080/control`.
-
-## Tests
 ## Requisitos
 
 - Node.js 20 o superior
@@ -48,7 +10,7 @@ La interfaz queda disponible en `http://localhost:8080/control`.
 - Docker Desktop con Docker Compose
 - Python 3, para validar las migraciones MySQL
 
-Comprueba las versiones:
+Comprueba las herramientas:
 
 ```bash
 node --version
@@ -58,11 +20,13 @@ docker compose version
 python3 --version
 ```
 
-pnpm turbo test
+Todos los comandos deben ejecutarse desde la raíz del repositorio:
+
+```bash
+cd /ruta/al/proyecto/playflow
 ```
 
-## Build
-## Instalación rápida
+## Preparación del ambiente
 
 El comando recomendado para preparar un ambiente nuevo o existente es:
 
@@ -70,27 +34,15 @@ El comando recomendado para preparar un ambiente nuevo o existente es:
 pnpm bootstrap
 ```
 
-El bootstrap es idempotente y realiza lo siguiente:
+El bootstrap es idempotente y verifica herramientas, instala dependencias con el
+lockfile, compila Studio y sus dependencias workspace, valida las migraciones,
+levanta MySQL, espera el healthcheck y carga los equipos iniciales sin duplicarlos.
+No elimina volúmenes ni datos existentes.
 
-1. Verifica Node.js, pnpm, Docker y Docker Compose.
-2. Crea `apps/studio/.env` desde `.env.example` si todavía no existe.
-3. Instala dependencias usando `pnpm-lock.yaml`.
-4. Compila Studio y todos sus paquetes workspace dependientes.
-5. Valida las migraciones contra las reglas de MySQL 8.
-6. Levanta MySQL y espera a que el healthcheck sea saludable.
-7. Carga los equipos iniciales sin duplicarlos.
-
-El script no ejecuta `docker compose down -v` y no elimina volúmenes ni datos existentes.
-
-
-```bash
-pnpm turbo build
-```
 ## Desarrollo local
 
-Después de ejecutar el bootstrap, levanta backend y frontend juntos:
-
 ```bash
+pnpm bootstrap
 pnpm --filter @playflow/studio dev:full
 ```
 
@@ -107,92 +59,230 @@ Servicios disponibles:
 | Health/info de API | `http://localhost:3001/api/info` |
 | MySQL | `localhost:3306` |
 
-También puedes iniciar cada proceso por separado:
+Para iniciar cada proceso por separado:
 
 ```bash
-# Terminal 1: backend Express + WebSocket
 pnpm --filter @playflow/studio dev:server
-
-# Terminal 2: frontend Vite
 pnpm --filter @playflow/studio dev
 ```
 
-No ejecutes `dev:full` antes de `pnpm bootstrap`: el backend importa los paquetes
-workspace desde sus directorios `dist/` compilados.
+No ejecutes `dev:full` antes de compilar los paquetes workspace: el backend
+importa sus entradas desde `dist/`.
 
+## Usuario SysAdmin y OTP
 
-## Especificacion funcional
+El usuario inicial se configura con `BOOTSTRAP_SYSADMIN_EMAIL`. En desarrollo,
+deja `SMTP_HOST` vacío o comentado en `apps/studio/.env` para ver el código OTP
+en el terminal del backend. Si configuras SMTP, el código se envía por correo.
 
-La fuente de verdad del sistema vive en `docs/requirements/`. Revisar esos documentos antes de implementar cualquier modulo del monorepo.
-## Tests
-
-Tests unitarios de todo el monorepo:
-
-```bash
-pnpm turbo test
+```env
+BOOTSTRAP_SYSADMIN_EMAIL=luison@playflow.cl
+# SMTP_HOST=
 ```
 
-Tests específicos del servidor Studio:
+Después de cambiar `.env`, reinicia el backend y solicita un código nuevo. Un OTP
+verificado se consume y no puede reutilizarse.
 
-```bash
-pnpm --filter @playflow/studio test:server
+## Variables de entorno
+
+El archivo de referencia es [.env.example](.env.example). Para desarrollo local,
+`pnpm bootstrap` lo copia automáticamente a `apps/studio/.env` si no existe.
+
+```env
+DATABASE_URL=mysql://playflow_app:dev_password@localhost:3306/playflow_db
+PORT=3001
+NODE_ENV=development
+BOOTSTRAP_SYSADMIN_EMAIL=luison@playflow.cl
 ```
 
-Tests E2E:
+Para producción o staging, configura SMTP con valores reales y nunca incluyas
+contraseñas en Git:
 
-```bash
-pnpm test:e2e
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=465
+SMTP_USER=...
+SMTP_PASSWORD=...
+EMAIL_FROM=no-reply@playflow.app
+EMAIL_FROM_NAME=PlayFlow
 ```
 
+## Base de datos MySQL
 
-## Operación de modelos (Squad)
+```bash
+docker compose up -d --wait db
+```
 
-Referencia persistente para política activa y rollback:
+Las migraciones de `infra/mysql/migrations/` se ejecutan automáticamente al crear
+un volumen MySQL nuevo. El seed nacional está en
+[009_seed_national_teams.sql](infra/mysql/migrations/009_seed_national_teams.sql).
+
+Para cargar los equipos manualmente en un volumen existente:
+
+```bash
+docker exec -i playflow-db \
+	mysql -uplayflow_app -pdev_password playflow_db \
+	< infra/mysql/seed-national-teams.sql
+```
+
+Equipos iniciales: `team-argentina`, `team-bolivia` y `team-ecuador`.
+
+Verificar la base:
+
+```bash
+docker compose ps
+docker exec playflow-db mysql -uplayflow_app -pdev_password playflow_db \
+	-e "SHOW TABLES;"
+```
+
+### Backup y restore
+
+```bash
+pnpm db:backup
+pnpm db:restore
+```
+
+`docker compose down -v` elimina el volumen MySQL. Úsalo solo después de crear un
+backup o cuando quieras reinicializar completamente la base:
+
+```bash
+docker compose down -v
+pnpm bootstrap
+```
+
 ## Ejecución completa con Docker
 
 Para construir y levantar frontend, backend y MySQL en contenedores:
 
 ```bash
 cp .env.example .env
+# Edita .env y define BOOTSTRAP_SYSADMIN_EMAIL y HOST_PORT.
 docker compose up -d --build
 ```
 
-Antes de iniciar en otro ambiente, edita `.env` y define al menos:
+La aplicación queda disponible en `http://localhost:8080/control` y el healthcheck
+en `http://localhost:8080/api/info`.
 
-```env
-BOOTSTRAP_SYSADMIN_EMAIL=admin@example.com
-HOST_PORT=8080
-```
-
-La aplicación completa queda disponible en:
-
-```text
-http://localhost:8080/control
-```
-
-El healthcheck del contenedor usa:
-
-```text
-http://localhost:8080/api/info
-```
-
-Detener contenedores sin borrar el volumen:
+Para detener contenedores sin borrar el volumen:
 
 ```bash
 docker compose down
 ```
 
+## Comandos del proyecto
 
-- `MODEL_POLICY_ROLLBACK.md`
+```bash
+pnpm bootstrap                                  # prepara ambiente y base de datos
+pnpm --filter @playflow/studio dev:full         # backend + frontend
+pnpm --filter @playflow/studio dev:server       # solo backend
+pnpm --filter @playflow/studio dev              # solo frontend
+pnpm turbo build                                # compila todos los paquetes
+pnpm --filter @playflow/studio build            # compila Studio
+pnpm turbo typecheck                            # verifica tipos
+pnpm turbo lint                                 # lint
+pnpm turbo test                                 # tests unitarios
+pnpm test:e2e                                   # tests Playwright
+```
 
+## Rutas principales
+
+| Ruta | Uso |
+| --- | --- |
+| `/login` | Inicio de sesión |
+| `/control` | Panel del operador |
+| `/control/admin` | Administración SysAdmin |
+| `/live-game-scoring` | Scoring del juego en vivo |
+| `/scorer` | Vista del anotador |
+| `/broadcast` | Salida de transmisión |
+| `/overlay/:overlayId` | Render de un overlay |
+| `/settings/mfa` | Configuración MFA |
+| `/admin/audit` | Visor de auditoría |
+| `/admin/permissions` | Simulador de permisos |
+
+## Tests
+
+```bash
+pnpm turbo test
+pnpm --filter @playflow/studio test:server
+pnpm test:e2e
+```
+
+## Estructura principal
+
+```text
+apps/studio/              Aplicación web, API Express y WebSocket
+packages/core/            Contratos y tipos compartidos
+packages/game-engine/     Fuente de verdad del estado deportivo
+packages/device-adapters/ Adaptadores de dispositivos y CSV
+packages/overlays/        Overlays individuales de transmisión
+infra/mysql/migrations/   Esquema, migraciones y seeds iniciales
+scripts/bootstrap.sh      Preparación reproducible del ambiente
+tests/e2e/                Pruebas end-to-end
+docs/requirements/        Especificaciones funcionales
+```
+
+## Solución de problemas
+
+### `pnpm: command not found`
+
+```bash
+corepack enable
+corepack prepare pnpm@9.0.0 --activate
+```
+
+### `Cannot find package .../dist/index.js`
+
+Compila las dependencias workspace:
+
+```bash
+pnpm bootstrap
+```
+
+O manualmente:
+
+```bash
+pnpm install
+pnpm turbo build --filter=@playflow/studio...
+```
+
+### El OTP no aparece en el terminal
+
+Comprueba que `SMTP_HOST` esté vacío o comentado en `apps/studio/.env`, reinicia
+el backend y solicita un código nuevo con `BOOTSTRAP_SYSADMIN_EMAIL`.
+
+### MySQL no inicia o falla el healthcheck
+
+```bash
+docker logs playflow-db
+docker compose ps
+```
+
+Si el volumen tiene una inicialización parcial de desarrollo, crea un backup si
+corresponde y luego reinicializa:
+
+```bash
+pnpm db:backup
+
+pnpm bootstrap
+```
+
+## Especificación funcional
+
+La fuente de verdad funcional está en [docs/requirements](docs/requirements/).
+Revisa el documento correspondiente antes de modificar un módulo.
 
 ## Plan de releases
 
 | Release | Contenido |
 | --- | --- |
-| v0.1.0 | Design System tokens + Asset Manager + Scorebug |
-| v0.2.0 | Game Engine + Layout Manager + Overlay Manager + Integration Contracts |
-| v0.3.0 | Batter, Lineup, Next Batters, Pitcher, Substitution, Game Event overlays |
-| v0.4.0 | Inning Transition, Final Score |
-| v0.5.0 | Sponsor Break, Announcement, Social Lower Third, Countdown |
-| v1.0.0 | Overlay Lifecycle, Control Panel, QA Acceptance Checklist, e2e tests |
+| v0.1.0 | Design System tokens, Asset Manager y Scorebug |
+| v0.2.0 | Game Engine, Layout Manager, Overlay Manager e Integration Contracts |
+| v0.3.0 | Batter, Lineup, Next Batters, Pitcher, Substitution y Game Event |
+| v0.4.0 | Inning Transition y Final Score |
+| v0.5.0 | Sponsor Break, Announcement, Social Lower Third y Countdown |
+| v1.0.0 | Overlay Lifecycle, Control Panel y pruebas E2E |
+
+## Operación de modelos
+
+La política activa y el procedimiento de rollback están documentados en
+[MODEL_POLICY_ROLLBACK.md](MODEL_POLICY_ROLLBACK.md).
